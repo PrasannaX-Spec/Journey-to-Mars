@@ -2,7 +2,7 @@
 
 A cinematic, scroll-driven space experience from Earth to Mars with immersive storytelling and interactive exploration.
 
-🔗 Live Demo: (add after deployment)
+🔗 Live Demo: https://journey-to-mars-nu.vercel.app/
 
 ## 🌌 Overview
 A cinematic scroll-based web experience that simulates the journey from Earth to Mars. Designed to meet all the mandatory requirements of the creative challenge, the project features a cohesive narrative that combines advanced 3D integrations, premium interaction design, and data-driven storytelling.
