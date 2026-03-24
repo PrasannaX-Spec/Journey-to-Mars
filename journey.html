@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journey to Mars | Surface Exploration</title>
+    <meta name="description" content="Explore the Martian surface — an interactive game experience.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --mars-red: #8B0000;
+            --mars-orange: #FF4500;
+            --mars-sand: #c1440e;
+            --space-bg: #0B0F1A;
+            --hud-white: rgba(255, 220, 180, 0.85);
+            --hud-glass: rgba(255, 80, 0, 0.06);
+            --hud-border: rgba(255, 150, 50, 0.2);
+            --font-heading: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a0800;
+            color: var(--hud-white);
+            font-family: var(--font-body);
+            cursor: none;
+        }
+
+        /* ── CUSTOM CURSOR ── */
+        #cursor {
+            position: fixed;
+            width: 14px;
+            height: 14px;
+            border: 1px solid rgba(255, 120, 50, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.15s, height 0.15s;
+        }
+
+        /* ── START SCREEN ── */
+        #start-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            gap: 20px;
+        }
+
+        .ss-badge {
+            font-family: var(--font-heading);
+            font-size: 0.55rem;
+            letter-spacing: 6px;
+            color: var(--mars-orange);
+            border: 1px solid rgba(255, 69, 0, 0.3);
+            padding: 5px 18px;
+        }
+
+        .ss-title {
+            font-family: var(--font-heading);
+            font-size: clamp(2.5rem, 8vw, 6rem);
+            font-weight: 900;
+            color: #fff;
+            text-align: center;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .ss-title span {
+            color: var(--mars-orange);
+        }
+
+        .ss-subtitle {
+            font-family: var(--font-heading);
+            font-size: 0.8rem;
+            letter-spacing: 4px;
+            color: rgba(255, 255, 255, 0.35);
+            text-transform: uppercase;
+        }
+
+        .ss-controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 10px 0;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .ss-control-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 150, 50, 0.12);
+            padding: 12px 16px;
+            font-family: var(--font-heading);
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .ss-control-item span {
+            color: var(--mars-orange);
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        #start-btn {
+            font-family: var(--font-heading);
+            font-size: 0.75rem;
+            letter-spacing: 5px;
+            color: var(--mars-orange);
+            border: 1px solid var(--mars-orange);
+            background: rgba(255, 69, 0, 0.08);
+            padding: 16px 60px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            animation: startPulse 2s ease-in-out infinite;
+        }
+
+        #start-btn:hover {
+            background: var(--mars-orange);
+            color: #fff;
+            box-shadow: 0 0 40px rgba(255, 69, 0, 0.5);
+            animation: none;
+        }
+
+        @keyframes startPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 rgba(255, 69, 0, 0);
+            }
+
+            50% {
+                box-shadow: 0 0 25px rgba(255, 69, 0, 0.3);
+            }
+        }
+
+        .ss-bg-stars {
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+        }
+
+        /* ── GAME CANVAS ── */
+        #game-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ── HUD ── */
+        #hud {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+
+        .hud-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+        }
+
+        .hud-corner.tl {
+            top: 20px;
+            left: 20px;
+            border-top: 1px solid var(--hud-border);
+            border-left: 1px solid var(--hud-border);
+        }
+
+        .hud-corner.tr {
+            top: 20px;
+            right: 20px;
+            border-top: 1px solid var(--hud-border);
+            border-right: 1px solid var(--hud-border);
+        }
+
+        .hud-corner.bl {
+            bottom: 20px;
+            left: 20px;
+            border-bottom: 1px solid var(--hud-border);
+            border-left: 1px solid var(--hud-border);
+        }
+
+        .hud-corner.br {
+            bottom: 20px;
+            right: 20px;
+            border-bottom: 1px solid var(--hud-border);
+            border-right: 1px solid var(--hud-border);
+        }
+
+        #hud-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 50px;
+        }
+
+        .hud-label {
+            font-family: var(--font-heading);
+            font-size: 0.55rem;
+            letter-spacing: 4px;
+            color: rgba(255, 150, 50, 0.6);
+        }
+
+        .hud-value {
+            font-family: var(--font-heading);
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--hud-white);
+        }
+
+        #hud-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 22px 50px;
+        }
+
+        #objective-box {
+            font-family: var(--font-heading);
+            font-size: 0.6rem;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.35);
+            border-left: 2px solid var(--mars-orange);
+            padding-left: 12px;
+        }
+
+        #objective-box span {
+            color: var(--mars-orange);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        #controls-hint {
+            font-family: var(--font-heading);
+            font-size: 0.5rem;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ── HEALTH BAR ── */
+        #oxygen-bar-container {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            pointer-events: none;
+        }
+
+        .bar-label {
+            font-family: var(--font-heading);
+            font-size: 0.45rem;
+            letter-spacing: 3px;
+            color: rgba(255, 150, 50, 0.5);
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .bar-track {
+            height: 2px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            background: var(--mars-orange);
+            box-shadow: 0 0 8px rgba(255, 69, 0, 0.5);
+            transition: width 0.3s ease;
+        }
+
+        .bar-fill.low {
+            background: #ff3300;
+        }
+
+        /* ── INTERACTION PROMPT ── */
+        #interaction-prompt {
+            position: fixed;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--font-heading);
+            font-size: 0.65rem;
+            letter-spacing: 3px;
+            color: var(--mars-orange);
+            border: 1px solid rgba(255, 150, 50, 0.3);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 24px;
+            backdrop-filter: blur(10px);
+            display: none;
+            z-index: 200;
+            animation: promptBlink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes promptBlink {
+
+            0%,
+            100% {
+                opacity: 0.6
+            }
+
+            50% {
+                opacity: 1
+            }
+        }
+
+        /* ── INFO MODAL ── */
+        #info-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            width: min(500px, 90vw);
+            background: rgba(5, 2, 1, 0.92);
+            border: 1px solid rgba(255, 150, 50, 0.25);
+            backdrop-filter: blur(20px);
+            padding: 36px 40px;
+            z-index: 500;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        #info-modal.visible {
+            display: block;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #modal-icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        #modal-title {
+            font-family: var(--font-heading);
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--mars-orange);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        #modal-subtitle {
+            font-family: var(--font-heading);
+            font-size: 0.55rem;
+            letter-spacing: 4px;
+            color: rgba(255, 150, 50, 0.5);
+            margin-bottom: 20px;
+        }
+
+        #modal-content {
+            font-size: 0.9rem;
+            line-height: 1.75;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 28px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 16px;
+        }
+
+        #close-modal {
+            font-family: var(--font-heading);
+            font-size: 0.6rem;
+            letter-spacing: 4px;
+            color: var(--mars-orange);
+            border: 1px solid rgba(255, 150, 50, 0.3);
+            background: transparent;
+            padding: 10px 24px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            pointer-events: auto;
+        }
+
+        #close-modal:hover {
+            background: var(--mars-orange);
+            color: #fff;
+        }
+
+        /* ── DISCOVERED COUNTER ── */
+        #discovery-counter {
+            position: absolute;
+            top: 60px;
+            right: 50px;
+            font-family: var(--font-heading);
+            text-align: right;
+        }
+
+        #discoveries-found {
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--mars-orange);
+            line-height: 1;
+        }
+
+        #discoveries-total {
+            font-size: 0.55rem;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ── BACK LINK ── */
+        #back-link {
+            position: fixed;
+            top: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--font-heading);
+            font-size: 0.55rem;
+            letter-spacing: 4px;
+            color: rgba(255, 150, 50, 0.4);
+            text-decoration: none;
+            border: 1px solid rgba(255, 150, 50, 0.1);
+            padding: 6px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            z-index: 600;
+            transition: color 0.2s, border-color 0.2s;
+            pointer-events: auto;
+            display: none;
+        }
+
+        #back-link:hover {
+            color: var(--mars-orange);
+            border-color: rgba(255, 150, 50, 0.4);
+        }
+
+        /* ── COMPLETION BANNER ── */
+        #completion-banner {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 800;
+            gap: 20px;
+        }
+
+        .cb-badge {
+            font-family: var(--font-heading);
+            font-size: 0.55rem;
+            letter-spacing: 6px;
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            padding: 6px 20px;
+        }
+
+        .cb-title {
+            font-family: var(--font-heading);
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            color: #fff;
+            text-align: center;
+            letter-spacing: -1px;
+        }
+
+        .cb-title span {
+            color: var(--mars-orange);
+        }
+
+        .cb-sub {
+            font-family: var(--font-heading);
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .cb-btn {
+            font-family: var(--font-heading);
+            font-size: 0.7rem;
+            letter-spacing: 4px;
+            color: var(--mars-orange);
+            border: 1px solid var(--mars-orange);
+            padding: 14px 50px;
+            background: transparent;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cb-btn:hover {
+            background: var(--mars-orange);
+            color: #fff;
+        }
+
+        /* ── MINIMAP ── */
+        #minimap {
+            position: absolute;
+            bottom: 50px;
+            right: 50px;
+            width: 100px;
+            height: 70px;
+            border: 1px solid rgba(255, 150, 50, 0.15);
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            overflow: hidden;
+        }
+
+        #minimap-label {
+            font-family: var(--font-heading);
+            font-size: 0.35rem;
+            letter-spacing: 2px;
+            color: rgba(255, 150, 50, 0.4);
+            position: absolute;
+            top: 4px;
+            left: 6px;
+        }
+
+        /* ── TOUCH CONTROLS ── */
+        #touch-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .d-pad {
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: auto auto auto;
+            gap: 10px 5px;
+            pointer-events: auto;
+            align-items: end;
+        }
+
+        .t-btn-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .t-btn {
+            width: 55px;
+            height: 55px;
+            background: rgba(15, 10, 30, 0.8);
+            border: 2px solid rgba(255, 69, 0, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(255, 69, 0, 0.15);
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .t-btn:active {
+            background: rgba(255, 69, 0, 0.4);
+            transform: scale(0.95);
+        }
+
+        /* Metallic triangle icon for directional buttons */
+        .t-icon {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #ffffff, #ffbbaa);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            border-radius: 2px;
+        }
+
+        .t-btn.down .t-icon { transform: rotate(180deg); }
+        .t-btn.left .t-icon { transform: rotate(-90deg); }
+        .t-btn.right .t-icon { transform: rotate(90deg); }
+        
+        /* Action/Scan icon */
+        .t-btn.action .t-icon {
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); /* diamond */
+            background: linear-gradient(135deg, #ffffff, #ffa050);
+            width: 26px;
+            height: 26px;
+        }
+
+        .t-label {
+            font-family: var(--font-heading);
+            font-size: 0.55rem;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 700;
+        }
+        /* ── AIRLOCK TRANSITION ── */
+        #airlock-transition {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 99999;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+        .airlock-door {
+            width: 100%;
+            height: 50vh;
+            background: #0B0F1A;
+            border-bottom: 2px solid var(--mars-orange);
+            display: flex;
+            transition: transform 0.8s cubic-bezier(0.8, 0, 0.2, 1);
+        }
+        .airlock-door.bottom {
+            border-bottom: none;
+            border-top: 2px solid var(--mars-orange);
+        }
+        .door-detail {
+            width: 100%; height: 20px; 
+            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,69,0,0.15) 10px, rgba(255,69,0,0.15) 20px);
+        }
+        .airlock-closed .airlock-door.top { transform: translateY(0); }
+        .airlock-closed .airlock-door.bottom { transform: translateY(0); }
+        .airlock-open .airlock-door.top { transform: translateY(-100%); }
+        .airlock-open .airlock-door.bottom { transform: translateY(100%); }
+    </style>
+</head>
+
+<body>
+
+    <!-- AIRLOCK TRANSITION -->
+    <div id="airlock-transition" class="airlock-closed">
+        <div class="airlock-door top"><div class="door-detail" style="margin-top:auto"></div></div>
+        <div class="airlock-door bottom"><div class="door-detail"></div></div>
+    </div>
+
+    <div id="cursor"></div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen">
+        <canvas class="ss-bg-stars" id="bg-stars"></canvas>
+        <div class="ss-badge">SURFACE MISSION · JEZERO CRATER</div>
+        <h1 class="ss-title">EXPLORE<br><span>MARS</span></h1>
+        <p class="ss-subtitle">Interactive Surface Exploration</p>
+        <div class="ss-controls-grid">
+            <div class="ss-control-item"><span>W A S D</span>MOVE ASTRONAUT</div>
+            <div class="ss-control-item"><span>E</span>SCAN ANOMALY</div>
+            <div class="ss-control-item"><span>↑↓←→</span>ALSO MOVE</div>
+            <div class="ss-control-item"><span>ESC</span>CLOSE PANEL</div>
+        </div>
+        <button id="start-btn">⬡ &nbsp; INITIATE SURFACE MISSION &nbsp; ⬡</button>
+        <p
+            style="font-family:var(--font-heading); font-size:0.7rem; letter-spacing:3px; color:rgba(255, 255, 255, 0.879); margin-top:10px;">
+            FIND ALL 5 ANOMALIES TO COMPLETE THE MISSION</p>
+    </div>
+
+    <!-- GAME CANVAS -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-corner tl"></div>
+        <div class="hud-corner tr"></div>
+        <div class="hud-corner bl"></div>
+        <div class="hud-corner br"></div>
+
+        <div id="hud-top">
+            <div>
+                <div class="hud-label">SURFACE TIME</div>
+                <div class="hud-value" id="time-elapsed">00:00</div>
+            </div>
+            <div style="text-align:center;">
+                <div class="hud-label" style="letter-spacing:6px;">MARS SURFACE OPS</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="hud-label">POSITION</div>
+                <div class="hud-value" id="position-display">X:0 Y:0</div>
+            </div>
+        </div>
+
+        <div id="discovery-counter">
+            <div id="discoveries-found">0</div>
+            <div id="discoveries-total">/5 DISCOVERED</div>
+        </div>
+
+        <div id="oxygen-bar-container">
+            <div class="bar-label">O₂ RESERVE</div>
+            <div class="bar-track">
+                <div class="bar-fill" id="oxygen-fill"></div>
+            </div>
+        </div>
+
+        <div id="hud-bottom">
+            <div id="objective-box">
+                <span>ACTIVE OBJECTIVE</span>
+                <span id="objective-text">EXPLORE THE MARTIAN SURFACE</span>
+            </div>
+            <div id="controls-hint">WASD / ARROWS TO MOVE &nbsp;·&nbsp; E TO INTERACT</div>
+        </div>
+
+        <div id="minimap">
+            <canvas id="minimap-canvas" width="100" height="70"></canvas>
+            <div id="minimap-label">CRATER MAP</div>
+        </div>
+
+        <div id="touch-controls">
+            <div class="d-pad">
+                <!-- UP -->
+                <div class="t-btn-container" style="grid-column: 2; grid-row: 1;">
+                    <div class="t-btn up" data-key="w"><div class="t-icon"></div></div>
+                    <div class="t-label">UP</div>
+                </div>
+                <!-- LEFT -->
+                <div class="t-btn-container" style="grid-column: 1; grid-row: 2;">
+                    <div class="t-btn left" data-key="a"><div class="t-icon"></div></div>
+                    <div class="t-label">LEFT</div>
+                </div>
+                <!-- RIGHT -->
+                <div class="t-btn-container" style="grid-column: 3; grid-row: 2;">
+                    <div class="t-btn right" data-key="d"><div class="t-icon"></div></div>
+                    <div class="t-label">RIGHT</div>
+                </div>
+                <!-- DOWN -->
+                <div class="t-btn-container" style="grid-column: 2; grid-row: 3;">
+                    <div class="t-btn down" data-key="s"><div class="t-icon"></div></div>
+                    <div class="t-label">DOWN</div>
+                </div>
+            </div>
+            
+            <div class="t-btn-container" style="pointer-events: auto; margin-bottom: 25px;">
+                <div class="t-btn action" data-key="e"><div class="t-icon"></div></div>
+                <div class="t-label">SCAN</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTION PROMPT -->
+    <div id="interaction-prompt">[ E ] SCAN ANOMALY</div>
+
+    <!-- INFO MODAL -->
+    <div id="info-modal">
+        <div id="modal-icon">🔬</div>
+        <div id="modal-title">OBJECT DISCOVERED</div>
+        <div id="modal-subtitle">ARTEMIS SURFACE LOG</div>
+        <p id="modal-content">Loading data...</p>
+        <button id="close-modal">✕ &nbsp; CLOSE DATA LINK</button>
+    </div>
+
+    <!-- BACK LINK -->
+    <a href="index.html" id="back-link">← ABORT MISSION</a>
+
+    <!-- COMPLETION BANNER -->
+    <div id="completion-banner">
+        <div class="cb-badge">✓ MISSION COMPLETE</div>
+        <h2 class="cb-title">ALL ANOMALIES<br><span>DISCOVERED</span></h2>
+        <p class="cb-sub">JEZERO CRATER · SURFACE SURVEY COMPLETE</p>
+        <a href="index.html" class="cb-btn">← RETURN TO MISSION LOG</a>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            // ─── CURSOR ────────────────────────────────────────────────────────────
+            const cursorEl = document.getElementById('cursor');
+            document.addEventListener('mousemove', e => {
+                cursorEl.style.left = e.clientX + 'px';
+                cursorEl.style.top = e.clientY + 'px';
+            });
+
+            // ─── BACKGROUND STARS (start screen) ──────────────────────────────────
+            const bgStarsCanvas = document.getElementById('bg-stars');
+            const bsCtx = bgStarsCanvas.getContext('2d');
+            function resizeBgStars() {
+                bgStarsCanvas.width = window.innerWidth;
+                bgStarsCanvas.height = window.innerHeight;
+                drawBgStars();
+            }
+            function drawBgStars() {
+                bsCtx.clearRect(0, 0, bgStarsCanvas.width, bgStarsCanvas.height);
+                for (let i = 0; i < 200; i++) {
+                    bsCtx.beginPath();
+                    bsCtx.arc(
+                        Math.random() * bgStarsCanvas.width,
+                        Math.random() * bgStarsCanvas.height,
+                        Math.random() * 1.2, 0, Math.PI * 2
+                    );
+                    bsCtx.fillStyle = `rgba(255,255,255,${Math.random() * 0.5 + 0.1})`;
+                    bsCtx.fill();
+                }
+            }
+            window.addEventListener('resize', resizeBgStars);
+            resizeBgStars();
+
+            // ─── GAME DATA ─────────────────────────────────────────────────────────
+            const WORLD_W = 3000;
+            const WORLD_H = 1600;
+            const TILE = 40;
+            const PLAYER_SPEED = 3.5;
+            const INTERACT_RADIUS = 70;
+
+            const OBJECTS = [
+                {
+                    id: 'rover', x: 800, y: 400, w: 90, h: 55,
+                    icon: '🛸', label: 'CURIOSITY ROVER MK-IV',
+                    subtitle: 'ROBOTIC SURFACE UNIT · SOL 4821',
+                    text: 'The rover has logged over 28km of terrain since landing. Its onboard spectrometer detected trace amounts of perchlorate salts, suggesting ancient brine channels once flowed through this crater. Six cameras, two science labs, and a nuclear power source — still running strong.',
+                    color: '#c8a030', glowColor: 'rgba(200,160,48,0.3)',
+                    discovered: false
+                },
+                {
+                    id: 'flag', x: 1500, y: 250, w: 20, h: 60,
+                    icon: '🚩', label: 'MISSION FLAG · ARTEMIS I',
+                    subtitle: 'FIRST LANDING BEACON · SOL 0001',
+                    text: 'Planted at 09:42 Mars Standard Time on Mission Day 1. The Artemis flag marks humanity\'s second foothold on another world — the first in over 50 years. The flag is made from ultra-thin carbon fiber to withstand 180km/h dust storms and -120°C nights.',
+                    color: '#ff4444', glowColor: 'rgba(255,68,68,0.3)',
+                    discovered: false
+                },
+                {
+                    id: 'rock', x: 550, y: 850, w: 70, h: 45,
+                    icon: '🪨', label: 'ANOMALOUS ROCK FORMATION',
+                    subtitle: 'GEOLOGICAL SPECIMEN · REF-A7',
+                    text: 'Spectrometer analysis indicates this basaltic formation is 3.8 billion years old — from the Noachian period when Mars had liquid water. Striations in the rock face suggest sedimentary layering. This could be fossilized evidence of microbial mats. Sample collection authorized.',
+                    color: '#886644', glowColor: 'rgba(136,102,68,0.3)',
+                    discovered: false
+                },
+                {
+                    id: 'crater', x: 2100, y: 700, w: 140, h: 80,
+                    icon: '🌑', label: 'IMPACT CRATER · DELTA-9',
+                    subtitle: 'GEOLOGICAL FEATURE · DIAMETER 18M',
+                    text: 'A secondary impact crater from the Isidis Basin event. The ejecta ring shows three distinct layers of material, the deepest dating to the Hesperian period (~3.0 Ga). Radar subsurface scans suggest a potential ice deposit at 2.3 meters depth. Drilling authorized.',
+                    color: '#664422', glowColor: 'rgba(102,68,34,0.3)',
+                    discovered: false
+                },
+                {
+                    id: 'antenna', x: 1800, y: 1100, w: 50, h: 100,
+                    icon: '📡', label: 'DEEP SPACE ANTENNA · DSN-7',
+                    subtitle: 'COMMUNICATION RELAY · UPTIME 99.2%',
+                    text: 'The DSN-7 relay maintains the 20-minute light-delay communication link with Earth. It transmits 250MB of science data per sol. Last signal received: Mission Control confirms all crew health parameters nominal. Message from home: "We\'re proud of you. The whole world is watching."',
+                    color: '#aaaacc', glowColor: 'rgba(170,170,200,0.3)',
+                    discovered: false
+                }
+            ];
+
+            let discovered = 0;
+            const TOTAL = OBJECTS.length;
+
+            // ─── GAME STATE ────────────────────────────────────────────────────────
+            const state = {
+                running: false,
+                player: { x: 400, y: 700, vx: 0, vy: 0, facing: 1 },
+                camera: { x: 0, y: 0 },
+                keys: {},
+                oxygen: 100,
+                elapsed: 0,
+                nearObject: null,
+                modalOpen: false,
+                lastTime: 0
+            };
+
+            // ─── DOM REFS ──────────────────────────────────────────────────────────
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const mmCanvas = document.getElementById('minimap-canvas');
+            const mmCtx = mmCanvas.getContext('2d');
+            const hudEl = document.getElementById('hud');
+            const startScreen = document.getElementById('start-screen');
+            const backLink = document.getElementById('back-link');
+            const promptEl = document.getElementById('interaction-prompt');
+            const modalEl = document.getElementById('info-modal');
+            const modalIcon = document.getElementById('modal-icon');
+            const modalTitle = document.getElementById('modal-title');
+            const modalSub = document.getElementById('modal-subtitle');
+            const modalContent = document.getElementById('modal-content');
+            const closeModalBtn = document.getElementById('close-modal');
+            const completionBanner = document.getElementById('completion-banner');
+            const timeEl = document.getElementById('time-elapsed');
+            const posEl = document.getElementById('position-display');
+            const oxyFill = document.getElementById('oxygen-fill');
+            const foundEl = document.getElementById('discoveries-found');
+            const objectiveEl = document.getElementById('objective-text');
+
+            // ─── RESIZE ────────────────────────────────────────────────────────────
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // ─── TERRAIN GENERATION ────────────────────────────────────────────────
+            function seededRand(seed) {
+                const x = Math.sin(seed + 1) * 10000;
+                return x - Math.floor(x);
+            }
+
+            // Pre-generate terrain elements
+            const ROCKS = [];
+            for (let i = 0; i < 80; i++) {
+                ROCKS.push({
+                    x: seededRand(i * 7) * WORLD_W,
+                    y: seededRand(i * 11) * WORLD_H,
+                    r: seededRand(i * 13) * 22 + 6,
+                    type: Math.floor(seededRand(i * 17) * 3)
+                });
+            }
+            const CRATERS = [];
+            for (let i = 0; i < 15; i++) {
+                CRATERS.push({
+                    x: seededRand(i * 23) * WORLD_W,
+                    y: seededRand(i * 29) * WORLD_H,
+                    r: seededRand(i * 31) * 50 + 20
+                });
+            }
+            const DUNES = [];
+            for (let i = 0; i < 20; i++) {
+                DUNES.push({
+                    x: seededRand(i * 37) * WORLD_W,
+                    y: seededRand(i * 41) * WORLD_H,
+                    w: seededRand(i * 43) * 200 + 80,
+                    h: seededRand(i * 47) * 25 + 10
+                });
+            }
+
+            // ─── PARTICLE SYSTEM (dust) ────────────────────────────────────────────
+            const particles = [];
+            function spawnDust(x, y) {
+                for (let i = 0; i < 3; i++) {
+                    particles.push({
+                        x, y,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: -(Math.random() * 1.5 + 0.5),
+                        life: 1, alpha: 0.6,
+                        r: Math.random() * 4 + 2
+                    });
+                }
+            }
+            function updateParticles() {
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx; p.y += p.vy;
+                    p.life -= 0.025; p.alpha = p.life * 0.5;
+                    if (p.life <= 0) particles.splice(i, 1);
+                }
+            }
+
+            // ─── DRAW ──────────────────────────────────────────────────────────────
+            function drawTerrain(cX, cY) {
+                const W = canvas.width, H = canvas.height;
+
+                // Sky gradient
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.35);
+                skyGrad.addColorStop(0, '#0d0005');
+                skyGrad.addColorStop(1, '#3a0e00');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, W, H * 0.35);
+
+                // Horizon glow
+                const horizonY = H * 0.35;
+                const hrGrad = ctx.createRadialGradient(W / 2, horizonY, 0, W / 2, horizonY, W * 0.7);
+                hrGrad.addColorStop(0, 'rgba(255,80,0,0.15)');
+                hrGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = hrGrad;
+                ctx.fillRect(0, 0, W, H);
+
+                // Ground base
+                const groundGrad = ctx.createLinearGradient(0, horizonY, 0, H);
+                groundGrad.addColorStop(0, '#5a1500');
+                groundGrad.addColorStop(0.3, '#3d0e00');
+                groundGrad.addColorStop(1, '#1a0500');
+                ctx.fillStyle = groundGrad;
+                ctx.fillRect(0, horizonY, W, H - horizonY);
+
+                // Distant mountains
+                ctx.fillStyle = '#2d0a00';
+                ctx.beginPath();
+                ctx.moveTo(0, horizonY);
+                for (let x = 0; x <= W; x += 40) {
+                    const worldX = (x + cX) / 8;
+                    const h = (Math.sin(worldX * 0.03) * 35 + Math.sin(worldX * 0.07) * 20 + 60);
+                    ctx.lineTo(x, horizonY - h);
+                }
+                ctx.lineTo(W, horizonY);
+                ctx.closePath();
+                ctx.fill();
+
+                // Dunes
+                DUNES.forEach(d => {
+                    const dx = d.x - cX, dy = d.y - cY;
+                    ctx.fillStyle = 'rgba(100,35,5,0.4)';
+                    ctx.beginPath();
+                    ctx.ellipse(dx, dy, d.w / 2, d.h / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // Craters
+                CRATERS.forEach(c => {
+                    const cx2 = c.x - cX, cy2 = c.y - cY;
+                    ctx.strokeStyle = 'rgba(80,25,0,0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.ellipse(cx2, cy2, c.r, c.r * 0.4, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(20,5,0,0.4)';
+                    ctx.fill();
+                });
+
+                // Rocks
+                ROCKS.forEach(r => {
+                    const rx = r.x - cX, ry = r.y - cY;
+                    if (rx < -60 || rx > W + 60 || ry < -60 || ry > H + 60) return;
+                    ctx.fillStyle = ['#6b2a0f', '#5a2010', '#7a3015'][r.type];
+                    ctx.beginPath();
+                    ctx.ellipse(rx, ry, r.r, r.r * 0.65, 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    // rock highlight
+                    ctx.fillStyle = 'rgba(255,180,100,0.08)';
+                    ctx.beginPath();
+                    ctx.ellipse(rx - r.r * 0.2, ry - r.r * 0.25, r.r * 0.5, r.r * 0.3, 0.2, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            function drawObjects(cX, cY) {
+                OBJECTS.forEach(obj => {
+                    const ox = obj.x - cX;
+                    const oy = obj.y - cY;
+
+                    if (ox < -120 || ox > canvas.width + 120 || oy < -100 || oy > canvas.height + 100) return;
+
+                    // Glow for undiscovered
+                    if (!obj.discovered) {
+                        const dist = Math.hypot(state.player.x - obj.x, state.player.y - obj.y);
+                        if (dist < INTERACT_RADIUS * 2) {
+                            const glowAlpha = 1 - dist / (INTERACT_RADIUS * 2);
+                            ctx.save();
+                            ctx.shadowBlur = 30;
+                            ctx.shadowColor = obj.glowColor;
+                            ctx.globalAlpha = glowAlpha * 0.6;
+                            ctx.fillStyle = obj.glowColor;
+                            ctx.beginPath();
+                            ctx.arc(ox, oy, 20, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.restore();
+                        }
+                    }
+
+                    // Object shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.beginPath();
+                    ctx.ellipse(ox, oy + obj.h * 0.5, obj.w * 0.5, 8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Draw based on type
+                    ctx.save();
+                    ctx.translate(ox, oy);
+
+                    if (obj.id === 'rover') {
+                        // Body
+                        ctx.fillStyle = obj.discovered ? '#555' : '#c8a030';
+                        ctx.fillRect(-obj.w / 2, -obj.h / 2, obj.w, obj.h * 0.6);
+                        // Wheels
+                        ctx.fillStyle = '#333';
+                        [-obj.w / 2, 0, obj.w / 2 - 20].forEach(wx => {
+                            ctx.fillRect(wx, -2, 18, 14);
+                        });
+                        // Solar panel
+                        ctx.fillStyle = obj.discovered ? '#555' : '#3050a0';
+                        ctx.fillRect(-20, -obj.h / 2 - 15, 40, 10);
+                        // Mast
+                        ctx.fillStyle = '#888'; ctx.fillRect(-2, -obj.h / 2 - 25, 4, 15);
+                        ctx.fillStyle = '#f00'; ctx.beginPath(); ctx.arc(0, -obj.h / 2 - 28, 4, 0, Math.PI * 2); ctx.fill();
+                    } else if (obj.id === 'flag') {
+                        // Pole
+                        ctx.fillStyle = '#999'; ctx.fillRect(-2, -obj.h, 4, obj.h);
+                        // Flag
+                        ctx.fillStyle = obj.discovered ? '#553' : '#cc0000';
+                        ctx.beginPath(); ctx.moveTo(2, -obj.h); ctx.lineTo(25, -obj.h + 10); ctx.lineTo(2, -obj.h + 18); ctx.closePath(); ctx.fill();
+                        // Text on flag
+                        if (!obj.discovered) { ctx.fillStyle = '#fff'; ctx.font = 'bold 9px sans-serif'; ctx.fillText('A', 10, -obj.h + 13); }
+                    } else if (obj.id === 'rock') {
+                        ctx.fillStyle = obj.discovered ? '#443' : '#886644';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, obj.w / 2, obj.h / 2, -0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = 'rgba(255,200,100,0.1)';
+                        ctx.beginPath();
+                        ctx.ellipse(-obj.w * 0.15, -obj.h * 0.2, obj.w * 0.3, obj.h * 0.2, -0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (obj.id === 'crater') {
+                        ctx.strokeStyle = obj.discovered ? '#443' : '#996633';
+                        ctx.lineWidth = 6;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, obj.w / 2, obj.h / 2, 0, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.fillStyle = obj.discovered ? 'rgba(30,10,5,0.6)' : 'rgba(50,15,0,0.8)';
+                        ctx.fill();
+                    } else if (obj.id === 'antenna') {
+                        // Base
+                        ctx.fillStyle = '#555'; ctx.fillRect(-15, -10, 30, 20);
+                        // Pole
+                        ctx.fillStyle = '#888'; ctx.fillRect(-3, -obj.h + 10, 6, obj.h - 20);
+                        // Dish
+                        ctx.strokeStyle = obj.discovered ? '#666' : '#aaaacc';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(0, -obj.h + 15, 20, 0, Math.PI);
+                        ctx.stroke();
+                        // Blink
+                        if (Math.floor(Date.now() / 500) % 2 && !obj.discovered) {
+                            ctx.fillStyle = '#ff3'; ctx.beginPath(); ctx.arc(0, -obj.h + 12, 4, 0, Math.PI * 2); ctx.fill();
+                        }
+                    }
+
+                    // Discovered checkmark
+                    if (obj.discovered) {
+                        ctx.fillStyle = 'rgba(0,255,136,0.8)';
+                        ctx.font = 'bold 16px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('✓', 0, -obj.h / 2 - 10);
+                    }
+
+                    ctx.restore();
+                });
+            }
+
+            function drawPlayer(cX, cY) {
+                const px = state.player.x - cX;
+                const py = state.player.y - cY;
+                const { vx, vy, facing } = state.player;
+                const moving = Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1;
+                const bob = moving ? Math.sin(Date.now() * 0.01) * 3 : 0;
+                const t = Date.now();
+
+                ctx.save();
+                ctx.translate(px, py);
+                if (facing < 0) ctx.scale(-1, 1);
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.beginPath(); ctx.ellipse(0, 18, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+                // Legs
+                if (moving) {
+                    const legSwing = Math.sin(t * 0.01) * 10;
+                    ctx.fillStyle = '#e8e8e8';
+                    ctx.fillRect(-8, 8 + bob, 6, 16 + legSwing);
+                    ctx.fillRect(2, 8 + bob, 6, 16 - legSwing);
+                } else {
+                    ctx.fillStyle = '#e8e8e8';
+                    ctx.fillRect(-8, 8 + bob, 6, 16);
+                    ctx.fillRect(2, 8 + bob, 6, 16);
+                }
+
+                // Body (suit)
+                ctx.fillStyle = '#c0c8d0';
+                ctx.beginPath(); ctx.roundRect(-12, -10 + bob, 24, 22, 4); ctx.fill();
+                // Suit chest detail
+                ctx.fillStyle = 'rgba(255,150,50,0.5)';
+                ctx.fillRect(-6, -6 + bob, 12, 6);
+
+                // Backpack
+                ctx.fillStyle = '#a0a8b0';
+                ctx.fillRect(10, -8 + bob, 8, 16);
+
+                // Arms
+                if (moving) {
+                    const armSwing = Math.sin(t * 0.01) * 12;
+                    ctx.fillStyle = '#c0c8d0';
+                    ctx.fillRect(-20, -6 + bob - armSwing, 8, 14);
+                    ctx.fillRect(12, -6 + bob + armSwing, 8, 14);
+                } else {
+                    ctx.fillStyle = '#c0c8d0';
+                    ctx.fillRect(-20, -4 + bob, 8, 14);
+                    ctx.fillRect(12, -4 + bob, 8, 14);
+                }
+
+                // Helmet
+                ctx.fillStyle = '#dde5ec';
+                ctx.beginPath(); ctx.arc(0, -18 + bob, 14, 0, Math.PI * 2); ctx.fill();
+                // Visor
+                ctx.fillStyle = 'rgba(255,200,80,0.7)';
+                ctx.beginPath(); ctx.ellipse(3, -18 + bob, 9, 8, 0.2, 0, Math.PI * 2); ctx.fill();
+                // Visor glint
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath(); ctx.ellipse(-1, -21 + bob, 3, 2, -0.3, 0, Math.PI * 2); ctx.fill();
+
+                ctx.restore();
+
+                // Name tag
+                ctx.fillStyle = 'rgba(255,150,50,0.8)';
+                ctx.font = `${7}px "Outfit", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText('CDR. VANCE', px, py - 38);
+            }
+
+            function drawParticles(cX, cY) {
+                particles.forEach(p => {
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = '#c87040';
+                    ctx.beginPath();
+                    ctx.arc(p.x - cX, p.y - cY, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+
+            function drawMinimap() {
+                mmCtx.clearRect(0, 0, 100, 70);
+                const scaleX = 100 / WORLD_W;
+                const scaleY = 70 / WORLD_H;
+
+                // Background
+                mmCtx.fillStyle = 'rgba(60,15,0,0.8)';
+                mmCtx.fillRect(0, 0, 100, 70);
+
+                // Objects on minimap
+                OBJECTS.forEach(obj => {
+                    mmCtx.fillStyle = obj.discovered ? '#00ff88' : '#ff6622';
+                    mmCtx.beginPath();
+                    mmCtx.arc(obj.x * scaleX, obj.y * scaleY, 3, 0, Math.PI * 2);
+                    mmCtx.fill();
+                });
+
+                // Player
+                mmCtx.fillStyle = '#fff';
+                mmCtx.beginPath();
+                mmCtx.arc(state.player.x * scaleX, state.player.y * scaleY, 3, 0, Math.PI * 2);
+                mmCtx.fill();
+
+                // Camera viewport rect
+                mmCtx.strokeStyle = 'rgba(255,150,50,0.25)';
+                mmCtx.lineWidth = 1;
+                mmCtx.strokeRect(
+                    state.camera.x * scaleX, state.camera.y * scaleY,
+                    canvas.width * scaleX, canvas.height * scaleY
+                );
+            }
+
+            // ─── GAME LOOP ─────────────────────────────────────────────────────────
+            function update(dt) {
+                const p = state.player;
+                const keys = state.keys;
+
+                // Movement
+                p.vx = 0; p.vy = 0;
+                if (keys['ArrowLeft'] || keys['a'] || keys['A']) { p.vx = -PLAYER_SPEED; p.facing = -1; }
+                if (keys['ArrowRight'] || keys['d'] || keys['D']) { p.vx = PLAYER_SPEED; p.facing = 1; }
+                if (keys['ArrowUp'] || keys['w'] || keys['W']) p.vy = -PLAYER_SPEED;
+                if (keys['ArrowDown'] || keys['s'] || keys['S']) p.vy = PLAYER_SPEED;
+
+                // Normalize diagonal
+                if (p.vx !== 0 && p.vy !== 0) { p.vx *= 0.707; p.vy *= 0.707; }
+
+                p.x = Math.max(30, Math.min(WORLD_W - 30, p.x + p.vx));
+                p.y = Math.max(30, Math.min(WORLD_H - 30, p.y + p.vy));
+
+                // Dust particles when moving
+                if ((p.vx !== 0 || p.vy !== 0) && Math.random() < 0.3) {
+                    spawnDust(p.x + (Math.random() - 0.5) * 20, p.y + 20);
+                }
+
+                // Smooth camera follow
+                const targetCX = p.x - canvas.width / 2;
+                const targetCY = p.y - canvas.height / 2;
+                state.camera.x += (targetCX - state.camera.x) * 0.08;
+                state.camera.y += (targetCY - state.camera.y) * 0.08;
+                state.camera.x = Math.max(0, Math.min(WORLD_W - canvas.width, state.camera.x));
+                state.camera.y = Math.max(0, Math.min(WORLD_H - canvas.height, state.camera.y));
+
+                // Check nearby objects
+                state.nearObject = null;
+                OBJECTS.forEach(obj => {
+                    if (obj.discovered) return;
+                    const dist = Math.hypot(p.x - obj.x, p.y - obj.y);
+                    if (dist < INTERACT_RADIUS) state.nearObject = obj;
+                });
+
+                // Interaction prompt
+                promptEl.style.display = state.nearObject && !state.modalOpen ? 'block' : 'none';
+                if (state.nearObject) {
+                    promptEl.textContent = `[ E ]  SCAN: ${state.nearObject.label}`;
+                }
+
+                // HUD updates
+                state.elapsed += dt;
+                const m = Math.floor(state.elapsed / 60000);
+                const s = Math.floor((state.elapsed % 60000) / 1000);
+                timeEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                posEl.textContent = `X:${Math.floor(p.x / 10)} Y:${Math.floor(p.y / 10)}`;
+
+                // Oxygen drain
+                if (!state.modalOpen) state.oxygen = Math.max(0, state.oxygen - 0.005);
+                oxyFill.style.width = state.oxygen + '%';
+                oxyFill.className = 'bar-fill' + (state.oxygen < 25 ? ' low' : '');
+
+                // Low oxygen warning
+                if (state.oxygen <= 0) {
+                    objectiveEl.textContent = 'O₂ CRITICAL — RETURN TO BASE';
+                }
+
+                updateParticles();
+            }
+
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const cX = state.camera.x;
+                const cY = state.camera.y;
+
+                drawTerrain(cX, cY);
+                drawObjects(cX, cY);
+                drawParticles(cX, cY);
+                drawPlayer(cX, cY);
+                drawMinimap();
+            }
+
+            function gameLoop(ts) {
+                if (!state.running) return;
+                const dt = ts - state.lastTime;
+                state.lastTime = ts;
+                update(dt);
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ─── INTERACTION ───────────────────────────────────────────────────────
+            function openModal(obj) {
+                state.modalOpen = true;
+                modalIcon.textContent = obj.icon;
+                modalTitle.textContent = obj.label;
+                modalSub.textContent = obj.subtitle;
+                modalContent.textContent = obj.text;
+                modalEl.style.display = 'block';
+                requestAnimationFrame(() => modalEl.classList.add('visible'));
+
+                if (!obj.discovered) {
+                    obj.discovered = true;
+                    discovered++;
+                    foundEl.textContent = discovered;
+                    if (discovered >= TOTAL) {
+                        objectiveEl.textContent = 'ALL ANOMALIES SCANNED — MISSION COMPLETE!';
+                        setTimeout(() => {
+                            completionBanner.style.display = 'flex';
+                        }, 800);
+                    } else {
+                        objectiveEl.textContent = `${discovered}/${TOTAL} ANOMALIES DISCOVERED — KEEP EXPLORING`;
+                    }
+                }
+            }
+
+            function closeModal() {
+                state.modalOpen = false;
+                modalEl.classList.remove('visible');
+                setTimeout(() => { modalEl.style.display = 'none'; }, 300);
+                state.oxygen = Math.min(100, state.oxygen + 8); // O2 refill bonus
+            }
+
+            closeModalBtn.addEventListener('click', closeModal);
+
+            document.addEventListener('keydown', e => {
+                state.keys[e.key] = true;
+                if (e.key === 'Escape' && state.modalOpen) closeModal();
+                if ((e.key === 'e' || e.key === 'E') && state.nearObject && !state.modalOpen) {
+                    openModal(state.nearObject);
+                }
+            });
+            document.addEventListener('keyup', e => { state.keys[e.key] = false; });
+
+            // ─── TOUCH CONTROLS ────────────────────────────────────────────────────
+            const touchControls = document.getElementById('touch-controls');
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.getElementById('controls-hint').textContent = 'USE ON-SCREEN CONTROLS TO EXPLORE';
+            }
+
+            document.querySelectorAll('.t-btn').forEach(btn => {
+                const key = btn.getAttribute('data-key');
+                
+                const handleStart = (e) => {
+                    e.preventDefault();
+                    if (key === 'e') {
+                        if (state.nearObject && !state.modalOpen) {
+                            openModal(state.nearObject);
+                        } else if (state.modalOpen) {
+                            closeModal();
+                        }
+                    } else {
+                        state.keys[key] = true;
+                    }
+                };
+
+                const handleEnd = (e) => {
+                    e.preventDefault();
+                    if (key !== 'e') state.keys[key] = false;
+                };
+
+                btn.addEventListener('touchstart', handleStart);
+                btn.addEventListener('mousedown', handleStart);
+
+                btn.addEventListener('touchend', handleEnd);
+                btn.addEventListener('touchcancel', handleEnd);
+                btn.addEventListener('mouseup', handleEnd);
+                btn.addEventListener('mouseleave', handleEnd);
+            });
+
+            // ─── START ─────────────────────────────────────────────────────────────
+            function beginMission() {
+                startScreen.style.opacity = '0';
+                startScreen.style.transition = 'opacity 0.8s ease';
+                setTimeout(() => {
+                    startScreen.style.display = 'none';
+                    hudEl.style.display = 'block';
+                    backLink.style.display = 'block';
+                    state.running = true;
+                    state.lastTime = performance.now();
+                    requestAnimationFrame(gameLoop);
+                }, 800);
+            }
+
+            document.getElementById('start-btn').addEventListener('click', beginMission);
+
+            // Auto-start if coming from index.html CTA
+            if (window.location.search.includes('autostart=true')) {
+                // Immediate start, no transition seen
+                startScreen.style.display = 'none';
+                hudEl.style.display = 'block';
+                backLink.style.display = 'block';
+                state.running = true;
+                state.lastTime = performance.now();
+                // Start loop immediately
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ─── AIRLOCK TRANSITION JOURNEY <-> INDEX ───────────────────────────
+            window.addEventListener('load', () => {
+                const airlock = document.getElementById('airlock-transition');
+                requestAnimationFrame(() => {
+                    airlock.classList.remove('airlock-closed');
+                    airlock.classList.add('airlock-open');
+                });
+            });
+
+            document.querySelectorAll('a[href="index.html"]').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    e.preventDefault();
+                    const airlock = document.getElementById('airlock-transition');
+                    airlock.classList.remove('airlock-open');
+                    airlock.classList.add('airlock-closed');
+                    airlock.style.pointerEvents = 'auto';
+                    setTimeout(() => { window.location.href = btn.getAttribute('href'); }, 850);
+                });
+            });
+
+        })();
+    </script>
+</body>
+
+</html>
